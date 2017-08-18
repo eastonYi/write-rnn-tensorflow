@@ -1,52 +1,50 @@
 
-## Generative Handwriting Demo using TensorFlow
+# Generative Handwriting Demo using TensorFlow
 
-![example](https://cdn.rawgit.com/hardmaru/write-rnn-tensorflow/master/svg/example.svg)
+## reference
+See this blog post at [blog.otoro.net](http://blog.otoro.net/2015/12/12/handwriting-generation-demo-in-tensorflow) for more information.
 
-![example](https://cdn.rawgit.com/hardmaru/write-rnn-tensorflow/master/svg/many_examples.svg)
-
+## theory
 An attempt to implement the random handwriting generation portion of Alex Graves' [paper](http://arxiv.org/abs/1308.0850).
 
-See my blog post at [blog.otoro.net](http://blog.otoro.net/2015/12/12/handwriting-generation-demo-in-tensorflow) for more information.
 
-### How to use
+## data
+batch_size=50, seq_length=300
 
-I tested the implementation on TensorFlow r0.11 and Pyton 3.  I also used the following libraries to help:
-
+训练数据和验证数据就是错开了一个时刻,这和训练language model是一样的:
 ```
-svgwrite
-IPython.display.SVG
-IPython.display.display
-xml.etree.ElementTree
-argparse
-pickle
+x_batch.append(np.copy(data[idx:idx+self.seq_length]))
+y_batch.append(np.copy(data[idx+1:idx+self.seq_length+1]))
 ```
+![](assets/微信截图_20170817140533.png)
 
-### Training
+取validation data(仅取一个batch)
+![](assets/微信截图_20170817152851.png)
+
+取训练时的batch
+![](assets/微信截图_20170817152838.png)
+`self.pointer`用来标记取sequence作为训练数据的指针. 这个指针在当前sequence data中取完一个长度为`seq_length`的sequence作为batch中的一个后, 指针可能是指向下一个sequence data, 也可能原地不动, 原地概率与sequence data的长度成正比. 当指针指到sequence data底时,返回第一个.
+
+## Model
+模型分两种状态: 一个是训练状态,一个是采样状态(训练状态`infer =False`).
+使用多层LSTM作为RNN的cell
+## Train
+模型的输出需要经过非线性映射才能得到合法的参数:
+```
+o_pi, o_mu1, o_mu2, o_sigma1, o_sigma2, o_corr, o_eos =
+    get_mixture_coef(output)
+```
+因为模型输出是分布/分布参数, 不能直接与target比较,需要对分布进行采样后才能进行比较:
+```
+lossfunc = get_lossfunc(o_pi, o_mu1, o_mu2, o_sigma1, o_sigma2, o_corr, o_eos, x1_data, x2_data, eos_data)
+```
 
 You will need permission from [these wonderful people](http://www.iam.unibe.ch/fki/databases/iam-on-line-handwriting-database) people to get the IAM On-Line Handwriting data.  Unzip `lineStrokes-all.tar.gz` into the data subdirectory, so that you end up with `data/lineStrokes/a01`, `data/lineStrokes/a02`, etc.  Afterwards, running `python train.py` will start the training process.
 
 A number of flags can be set for training if you wish to experiment with the parameters.  The default values are in `train.py`
 
-```
---rnn_size RNN_SIZE             size of RNN hidden state
---num_layers NUM_LAYERS         number of layers in the RNN
---model MODEL                   rnn, gru, or lstm
---batch_size BATCH_SIZE         minibatch size
---seq_length SEQ_LENGTH         RNN sequence length
---num_epochs NUM_EPOCHS         number of epochs
---save_every SAVE_EVERY         save frequency
---grad_clip GRAD_CLIP           clip gradients at this value
---learning_rate LEARNING_RATE   learning rate
---decay_rate DECAY_RATE         decay rate for rmsprop
---num_mixture NUM_MIXTURE       number of gaussian mixtures
---data_scale DATA_SCALE         factor to scale raw data down by
---keep_prob KEEP_PROB           dropout keep probability
-```
-
-### Generating a Handwriting Sample
-
-I've included a pretrained model in `/save` so it should work out of the box.  Running `python sample.py --filename example_name --sample_length 1000` will generate 4 .svg files for each example, with 1000 points.
+## Sample
+采样时, model的batch参数设为1(只生成一个sequence), seq_length也设为1(因为下一时刻的输入得靠当前时刻的输出采样作为输入, 没办法预先提供给model)
 
 ### IPython interactive session.
 
@@ -61,17 +59,3 @@ draw_strokes_eos_weighted(strokes, params, factor=8, svg_filename = 'sample.eos.
 draw_strokes_pdf(strokes, params, factor=8, svg_filename = 'sample.pdf.svg')
 
 ```
-
-![example1a](https://cdn.rawgit.com/hardmaru/write-rnn-tensorflow/master/svg/example1.normal.svg)
-![example1b](https://cdn.rawgit.com/hardmaru/write-rnn-tensorflow/master/svg/example1.color.svg)
-![example1c](https://cdn.rawgit.com/hardmaru/write-rnn-tensorflow/master/svg/example1.multi_color.svg)
-![example1d](https://cdn.rawgit.com/hardmaru/write-rnn-tensorflow/master/svg/example1.eos_pdf.svg)
-![example1e](https://cdn.rawgit.com/hardmaru/write-rnn-tensorflow/master/svg/example1.pdf.svg)
-
-Have fun-
-
-## License
-
-MIT
-
-

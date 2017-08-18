@@ -11,7 +11,7 @@ def get_bounds(data, factor):
   max_x = 0
   min_y = 0
   max_y = 0
-    
+
   abs_x = 0
   abs_y = 0
   for i in range(len(data)):
@@ -23,23 +23,23 @@ def get_bounds(data, factor):
     min_y = min(min_y, abs_y)
     max_x = max(max_x, abs_x)
     max_y = max(max_y, abs_y)
-    
+
   return (min_x, max_x, min_y, max_y)
 
 # old version, where each path is entire stroke (smaller svg size, but have to keep same color)
 def draw_strokes(data, factor=10, svg_filename = 'sample.svg'):
   min_x, max_x, min_y, max_y = get_bounds(data, factor)
   dims = (50 + max_x - min_x, 50 + max_y - min_y)
-    
+
   dwg = svgwrite.Drawing(svg_filename, size=dims)
   dwg.add(dwg.rect(insert=(0, 0), size=dims,fill='white'))
 
   lift_pen = 1
-    
-  abs_x = 25 - min_x 
+
+  abs_x = 25 - min_x
   abs_y = 25 - min_y
   p = "M%s,%s " % (abs_x, abs_y)
-    
+
   command = "m"
 
   for i in range(len(data)):
@@ -84,12 +84,12 @@ def draw_strokes_random_color(stroke, factor=10, svg_filename = 'sample_random_c
 def draw_strokes_custom_color(data, factor=10, svg_filename = 'test.svg', color_data = None, stroke_width = 1):
   min_x, max_x, min_y, max_y = get_bounds(data, factor)
   dims = (50 + max_x - min_x, 50 + max_y - min_y)
-    
+
   dwg = svgwrite.Drawing(svg_filename, size=dims)
   dwg.add(dwg.rect(insert=(0, 0), size=dims,fill='white'))
 
   lift_pen = 1
-  abs_x = 25 - min_x 
+  abs_x = 25 - min_x
   abs_y = 25 - min_y
 
   for i in range(len(data)):
@@ -126,7 +126,7 @@ def draw_strokes_pdf(data, param, factor=10, svg_filename = 'sample_pdf.svg'):
   dwg = svgwrite.Drawing(svg_filename, size=dims)
   dwg.add(dwg.rect(insert=(0, 0), size=dims,fill='white'))
 
-  abs_x = 25 - min_x 
+  abs_x = 25 - min_x
   abs_y = 25 - min_y
 
   num_mixture = len(param[0][0])
@@ -156,11 +156,9 @@ def draw_strokes_pdf(data, param, factor=10, svg_filename = 'sample_pdf.svg'):
   dwg.save()
   display(SVG(dwg.tostring()))
 
-
-
 class DataLoader():
-  def __init__(self, batch_size=50, seq_length=300, scale_factor = 10, limit = 500):
-    self.data_dir = "./data"
+  def __init__(self, batch_size=50, seq_length=300, scale_factor = 10, limit = 500, data_dir ='../../Data'):
+    self.data_dir = data_dir
     self.batch_size = batch_size
     self.seq_length = seq_length
     self.scale_factor = scale_factor # divide data by this factor
@@ -250,7 +248,12 @@ class DataLoader():
     pickle.dump(strokes, f, protocol=2)
     f.close()
 
-
+# '''
+# pick the data that has adequate length to be the training data
+# constrain the delta x and y
+# scale x, y
+# split the data into train and valid
+# '''
   def load_preprocessed(self, data_file):
     f = open(data_file,"rb")
     self.raw_data = pickle.load(f)
@@ -270,12 +273,12 @@ class DataLoader():
         data = np.maximum(data, -self.limit)
         data = np.array(data,dtype=np.float32)
         data[:,0:2] /= self.scale_factor
-        cur_data_counter = cur_data_counter + 1
+        cur_data_counter += 1
         if cur_data_counter % 20 == 0:
           self.valid_data.append(data)
         else:
           self.data.append(data)
-          counter += int(len(data)/((self.seq_length+2))) # number of equiv batches this datapoint is worth
+          counter += int(len(data)/((self.seq_length+2))) # number of piece of data this data can provide
 
     print("train data: {}, valid data: {}".format(len(self.data), len(self.valid_data)))
     # minus 1, since we want the ydata to be a shifted version of x data
@@ -288,8 +291,8 @@ class DataLoader():
     for i in range(self.batch_size):
       data = self.valid_data[i%len(self.valid_data)]
       idx = 0
-      x_batch.append(np.copy(data[idx:idx+self.seq_length]))
-      y_batch.append(np.copy(data[idx+1:idx+self.seq_length+1]))
+      x_batch.append(np.copy(data[idx:   idx+self.seq_length]))
+      y_batch.append(np.copy(data[idx+1: idx+self.seq_length+1]))
     return x_batch, y_batch
 
   def next_batch(self):
@@ -300,8 +303,8 @@ class DataLoader():
       data = self.data[self.pointer]
       n_batch = int(len(data)/((self.seq_length+2))) # number of equiv batches this datapoint is worth
       idx = random.randint(0, len(data)-self.seq_length-2)
-      x_batch.append(np.copy(data[idx:idx+self.seq_length]))
-      y_batch.append(np.copy(data[idx+1:idx+self.seq_length+1]))
+      x_batch.append(np.copy(data[idx:   idx+self.seq_length]))
+      y_batch.append(np.copy(data[idx+1: idx+self.seq_length+1]))
       if random.random() < (1.0/float(n_batch)): # adjust sampling probability.
         #if this is a long datapoint, sample this data more with higher probability
         self.tick_batch_pointer()
@@ -311,6 +314,12 @@ class DataLoader():
     self.pointer += 1
     if (self.pointer >= len(self.data)):
       self.pointer = 0
+
+    '''
+    the method is used as init of pointer
+    '''
   def reset_batch_pointer(self):
     self.pointer = 0
 
+class parameter():
+    pass

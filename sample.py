@@ -4,31 +4,29 @@ import tensorflow as tf
 import time
 import os
 import pickle
-import argparse
 
 from utils import *
 from model import Model
 import random
 
-
 import svgwrite
 from IPython.display import SVG, display
 
-# main code (not in a main function since I want to run this script in IPython as well).
 
-parser = argparse.ArgumentParser()
-parser.add_argument('--filename', type=str, default='sample',
-                   help='filename of .svg file to output, without .svg')
-parser.add_argument('--sample_length', type=int, default=800,
-                   help='number of strokes to sample')
-parser.add_argument('--scale_factor', type=int, default=10,
-                   help='factor to scale down by for svg output.  smaller means bigger output')
-parser.add_argument('--model_dir', type=str, default='save',
-                   help='directory to save model to')
-parser.add_argument('--freeze_graph', dest='freeze_graph', action='store_true',
-                   help='if true, freeze (replace variables with consts), prune (for inference) and save graph')
-	
-sample_args = parser.parse_args()
+
+# main code (not in a main function since I want to run this script in IPython as well).
+with open('parameter.txt', 'r') as f:
+    sample_args =parameter()
+    for line in f:
+        if 'for sample.py' in line: break
+    sample_args.filename         =f.readline().split()[0]
+    sample_args.sample_length  =int(f.readline().split()[0])
+    sample_args.scale_factor  =int(f.readline().split()[0])
+    sample_args.model_dir         =f.readline().split()[0]
+    if f.readline().split()[0] =='True':
+        sample_args.freeze_graph =True
+    else:
+        sample_args.freeze_graph =False
 
 with open(os.path.join(sample_args.model_dir, 'config.pkl'), 'rb') as f:
     saved_args = pickle.load(f)
@@ -60,11 +58,11 @@ def freeze_and_save_graph(sess, folder, out_nodes, as_text=False):
     ext = '.txt' if as_text else '.pb'
     #tf.train.write_graph(graph_raw, folder, 'graph_raw'+ext, as_text=as_text)
     tf.train.write_graph(graph_frz, folder, 'graph_frz'+ext, as_text=as_text)
-    
 
-if(sample_args.freeze_graph):
-    freeze_and_save_graph(sess, sample_args.model_dir, ['data_out_mdn', 'data_out_eos', 'state_out'], False)
+
+# if(sample_args.freeze_graph):
+#     freeze_and_save_graph(sess, sample_args.model_dir, ['data_out_mdn', 'data_out_eos', 'state_out'], False)
 
 [strokes, params] = sample_stroke()
-
-
+# with open(os.path.join(sample_args.filename, 'strokes.pkl'), 'wb') as f:
+#     saved_args = pickle.dump([strokes, params], f)
