@@ -64,5 +64,5 @@ def freeze_and_save_graph(sess, folder, out_nodes, as_text=False):
 #     freeze_and_save_graph(sess, sample_args.model_dir, ['data_out_mdn', 'data_out_eos', 'state_out'], False)
 
 [strokes, params] = sample_stroke()
-# with open(os.path.join(sample_args.filename, 'strokes.pkl'), 'wb') as f:
-#     saved_args = pickle.dump([strokes, params], f)
+with open('svg/strokes'+sample_args.filename[-1]+'.pkl', 'wb') as f:
+    saved_args = pickle.dump([strokes, params], f)

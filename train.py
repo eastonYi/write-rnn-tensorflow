@@ -33,9 +33,9 @@ def train(args):
             sess.run(tf.assign(model.lr, args.learning_rate * (args.decay_rate ** e)))
             data_loader.reset_batch_pointer()
             v_x, v_y = data_loader.validation_data()
-            valid_feed = {model.input_data: v_x, model.target_data: v_y, model.state_in: model.state_in.eval()}
-            state = model.state_in.eval()
-            
+            valid_feed = {model.input_data: v_x, model.target_data: v_y, model.state_in: sess.run(model.state_in)}
+            state = sess.run(model.state_in)
+
             for b in range(data_loader.num_batches):
                 i = e * data_loader.num_batches + b
                 start = time.time()
@@ -49,7 +49,7 @@ def train(args):
 
                 end = time.time()
                 print(
-                    "{}/{} (epoch {}), train_loss = {:.3f}, valid_loss = {:.3f}, time/batch = {:.3f}"  \
+                    "{}/{} (epoch {}), train_loss = {:.5f}, valid_loss = {:.5f}, time/batch = {:.1f}"  \
                     .format(
                         i,
                         args.num_epochs * data_loader.num_batches,
